@@ -60,22 +60,27 @@ python find_retained_introns.py \\
 
 
 
+Output Explanation
+The script generates a tab-separated values (TSV) file, where each row represents an intron retention event detected from the BAM file. The columns include:
 
-## Output Explanation
-The script creates a tab-delimited (.tsv) file with one row per retained intron event. Columns include:
+Column Name	Description
+read_id	The read name (or ID) from the BAM file.
+gene_id	The gene associated with this transcript (from the GTF).
+transcript_id	The transcript ID assigned from the GTF.
+intron_number	The intron index in this transcript (1-based).
+intron_start	The genomic start coordinate of the intron.
+intron_end	The genomic end coordinate of the intron.
+read_start	The genomic start coordinate of the read.
+read_end	The genomic end coordinate of the read.
+read_position	The formatted position of the read in the form chrom:start-end.
+read_length	The total length of the read.
+overlap_length	The number of bases the read overlaps with the intron.
+percent_intron_covered	The percentage of the intron covered by the read (≥50% required to be considered retained).
+upstream_exon_coverage	The percentage of the upstream exon covered by the read.
+downstream_exon_coverage	The percentage of the downstream exon covered by the read.
+upstream_exon_index	The 1-based index of the upstream exon in the transcript.
+downstream_exon_index	The 1-based index of the downstream exon in the transcript.
 
-read_id: Name/ID of the read in the BAM.
-gene_id: Gene identifier from the GTF.
-transcript_id: Transcript identifier from the GTF.
-intron_number: 1-based index of the intron in the transcript.
-intron_start, intron_end: Genomic coordinates of the intron.
-read_start, read_end: Minimal & maximal covered positions of this read on the reference (based on alignment blocks).
-read_position (if included): A combined chrom:start-end notation for read coverage.
-read_length: The length of the read or query sequence.
-overlap_length: How many positions in this intron are covered by the read.
-percent_intron_covered: The fraction of the intron covered by the read (≥50% to be considered retained).
-upstream_exon_coverage, downstream_exon_coverage: The percent coverage of exons flanking this intron (0–100).
-upstream_exon_index, downstream_exon_index: 1-based indices of the flanking exons.
 
 
 
@@ -86,3 +91,28 @@ The arabidopsis gtf is not provided.
 
 
 gt gff3 -addintrons -retainids original.gtf > introns_defined.gtf
+
+# generate test: test with known "AT1G01010.1_unspliced" unspliced
+minimap2 -t 4 -ax map-ont ./genomic_data/TAIR10_chr_all.fas spliced_unsplied.fa |     samtools view -@ "$threads" -bS |      samtools sort -@ "$threads" -o test.bam
+
+samtools index test.bam
+
+
+the results folder for the tests:
+
+
+Below is a short summary of how these test read IDs relate to the intron retention outcomes you see in the table:
+
+AT1G01010.1_UNSPLICED
+
+This read is designed to retain all introns for the AT1G01010 gene.
+Consequently, it shows 100% coverage of every intron (intron numbers 1 to 5).
+AT1G01010.1_INTRON_1_2_WITH_EXONS/19-975
+
+This read is configured to have introns 1 and 2 retained while leaving other introns spliced out.
+As a result, the table shows high coverage for introns 1 and 2 but not for the subsequent ones.
+AT1G01010.1_EXON1_2_INTRON1/22-642
+
+This read contains exons 1 and 2 but retains the first intron only.
+So the table lists coverage specifically for intron 1 (91.4–100%) while other introns aren’t retained.
+Because these reads are contrived test cases, their names reflect the expected structure (splicing vs. retention). The retained intron detection in the output table confirms whether each test read matches its intended intron-retention profile.
